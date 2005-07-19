@@ -22,7 +22,7 @@ our @ISA = qw(Exporter);
 @EXPORT = qw(perlref2string string2perlref);
 @EXPORT_OK = qw(perlref2string string2perlref);
 
-our $VERSION = '0.02';
+our $VERSION = '0.02a';
 
 
 # Preloaded methods go here.
@@ -34,14 +34,19 @@ use Data::Dumper;
 
 sub perlref2string {
         my $perlref = shift;
-        return unless(defined $perlref);
+        die "Argument undefined" unless(defined $perlref);
         my ($string,$zipped,$encoded);
-        eval{$string  = Dumper($perlref);};
-        return if($@);
+        if(ref $perlref){
+        	eval{$string  = Dumper($perlref);};
+        	die $! if($@);
+        }else{
+        	$string = $perlref;
+        }
         eval{$zipped  = Compress::Zlib::memGzip($string);};
-        return if($@);
+        die $! if($@);
         eval{$encoded = encode_base64($zipped);};
-        return $encoded unless($@);
+        die $! if($@);
+        return $encoded;
 }
 
 sub string2perlref {
@@ -49,9 +54,10 @@ sub string2perlref {
         return unless(defined $string);
         my($decoded,$perlref,$VAR1);
         eval{$decoded = decode_base64($string);};
-        return if($@);
+        die $! if($@);
         $perlref = eval($VAR1 = Compress::Zlib::memGunzip($decoded));
-        return $perlref unless($@);
+        die $! if($@);
+        return $perlref;
 }
 
 1;
@@ -60,7 +66,7 @@ __END__
 
 =head1 NAME
 
-Convert::PerlRef2String - Perl extension for converting PERL reference object to compressed string and vice versa
+Convert::PerlRef2String - Perl extension for converting simple PERL references to compressed string and vice versa
 
 =head1 SYNOPSIS
 
@@ -72,14 +78,14 @@ The following script
   my $perl = {
           'Order' => {
                        'BookName' => 'Programming Web Serivices with Perl',
-                       'Id' => '0-596-00206-8',
+                       'Id'       => '0-596-00206-8',
                        'Quantity' => '500'
                      },
           'Payment' => {
-                         'CardType' => 'VISA',
+                         'CardType'  => 'VISA',
                          'ValidDate' => '12-10-2006',
-                         'CardNo' => '1234-5678-9012-3456',
-                         'Name' => 'Kai Li'
+                         'CardNo'    => '1234-5678-9012-3456',
+                         'Bearer'    => 'Kai Li'
                        }
         };
   my $string = perlref2string($perl);
@@ -87,12 +93,12 @@ The following script
   my $perlref = string2perlref($string);
   print Dumper($perlref);
 
-will produce
+produces this output:
 
-  H4sIAAAAAAAAA32QTQuCQBCG7/6KOQR7aWHUtCIKrC5SmH1g5y2XWkqNbSsk/O9Z2Rekc5x9nndn
-  phY4Mx26cNXgXWQiQy4JdHs/7Z8i/STZeSziD4z4MtlIFkUi3sCSr2DOpTiLNT/CRagt+FzuSb00
-  yw2fKUittk0RDbRpq4KfnlishEqfloVI/qPZdwTxWRrxWFXvlXMDJsNFeig2C9y5Uz5KjgdsL8Ih
-  UwWvG1RHaiDaldb9Ey95KWaDWnazRduY62bDqnY/Zx8xAWNBytjs/ZB1tBsqjca86gEAAA==
+  H4sIAAAAAAAAA32RzarCQAxG9z5FFheycSCttiqi4M9GFK1XqetoBx20rYyjUqTvbtVeuYJtlplz
+  vknIj9/7taADtwq8C2c6kBqh0/1ofxT243g/5VA+MfR0vNUchirawkquYSG1uqiNPMFVmR14Uh+w
+  Wpg1Cl4pJJyWK4hsckWzhJ+fOTLKJC/LIcLvaPo/Aj1OQhmZ8r0ybsA6WCbHfDN/tOgVj5LhPh9U
+  MGST85YtLBI2kVtqPT6Zxn9KrS4ct9EULcr0Wt0pd/uSdX4fHLOCicIiOn0/pO3KHXfoF8XsAQAA
 
   $VAR1 = {
           'Order' => {
@@ -104,14 +110,40 @@ will produce
                          'CardType' => 'VISA',
                          'ValidDate' => '12-10-2006',
                          'CardNo' => '1234-5678-9012-3456',
-                         'Name' => 'Kai Li'
+                         'Bearer' => 'Kai Li'
                        }
         };
+
+While a slightly different version (passing PERL code to sunroutine perlref2string instead of reference)
+
+  use Convert::PerlRef2String;
+  use Convert::PerlRef2String;
+  use Data::Dumper;
+  my $perl = q|{
+          'Order' => {
+                       'BookName' => 'Programming Web Serivices with Perl',
+                       'Id'       => '0-596-00206-8',
+                       'Quantity' => '500'
+                     },
+          'Payment' => {
+                         'CardType'  => 'VISA',
+                         'ValidDate' => '12-10-2006',
+                         'CardNo'    => '1234-5678-9012-3456',
+                         'Bearer'    => 'Kai Li'
+                       }
+        };|;
+  my $string = perlref2string($perl);
+  print $string,"\n";
+  my $perlref = string2perlref($string);
+  print Dumper($perlref);
+
+
+produces essentially the same result.
 
 
 =head1 DESCRIPTION
 
-This is a handy tool for who wants to send PERL reference objects over the Internet as compressed strings. When both the sender and receiver are PERL programs you can use this tool as an alternative to exchanging XML files.
+This is a handy tool for who wants to exchange simple PERL references (except for subroutine references) over the Internet as compressed strings. When both the sender and receiver are PERL programs you can use this tool as an alternative to exchanging XML files.
 
 =head2 EXPORT
 
