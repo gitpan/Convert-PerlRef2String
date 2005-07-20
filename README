@@ -1,9 +1,9 @@
-Convert-PerlRef2String version 0.02a
+Convert-PerlRef2String version 0.03
 ===================================
 
-This is a handy tool for who wants to exchange simple PERL references (except for subroutine references) 
-over the Internet as compressed strings. When both the sender and receiver are PERL programs you can use 
-this tool as an alternative to exchanging XML files.
+This is a handy tool for who wants to exchange PERL references over the Internet as compressed strings. 
+When both the sender and receiver are PERL programs you can use this tool as an alternative to 
+exchanging XML files (sometimes this methods is more powerful than SOAP).
 
 
 INSTALLATION
